@@ -192,17 +192,7 @@ const UniversityPage: React.FC = () => {
       )}
 
       <div className="space-y-4">
-        {!isAuthenticated ? (
-            <div className="bg-gray-50 border-l-4 border-indigo-400 p-4">
-                <div className="flex">
-                    <div className="ml-3">
-                        <p className="text-sm text-gray-700">
-                            Please <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">log in</Link> to view reviews.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        ) : reviews.length > 0 ? (
+        {reviews.length > 0 ? (
           reviews.map((review) => (
             <div key={review.id} className="bg-white shadow rounded-lg p-6 relative">
               <div className="flex items-center justify-between mb-2">
