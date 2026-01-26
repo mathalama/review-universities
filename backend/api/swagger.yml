@@ -228,6 +228,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserResponse'
 
+  /health:
+    get:
+      tags: [System]
+      summary: Проверка работоспособности сервиса
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+
   /users/profile:
     patch:
       tags: [Users]
