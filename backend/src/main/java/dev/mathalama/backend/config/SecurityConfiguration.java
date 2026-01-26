@@ -37,6 +37,7 @@ public class SecurityConfiguration {
                         req.requestMatchers(
                                         "/api/v1/auth/register",
                                         "/api/v1/auth/authenticate",
+                                        "/api/v1/health",
                                         "/v3/api-docs/**",
                                         "/swagger-ui/**",
                                         "/swagger-ui.html",
