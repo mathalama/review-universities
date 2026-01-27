@@ -4,6 +4,7 @@ import com.resend.Resend;
 import com.resend.services.emails.model.SendEmailRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,6 +14,7 @@ public class EmailService {
 
     private final Resend resend;
 
+    @Async
     public void sendVerificationEmail(String to, String verificationLink) {
         String htmlContent = """
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">

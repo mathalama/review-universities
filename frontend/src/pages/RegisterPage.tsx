@@ -11,6 +11,7 @@ const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,6 +23,7 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       await api.post<AuthResponse>('/auth/register', { firstname, lastname, email, password });
       setIsSuccess(true);
@@ -42,6 +44,8 @@ const RegisterPage: React.FC = () => {
         } else {
             setError('Could not connect to the server.');
         }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -187,9 +191,12 @@ const RegisterPage: React.FC = () => {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                disabled={isLoading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                  isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
               >
-                Register
+                {isLoading ? 'Registering...' : 'Register'}
               </button>
             </div>
           </form>

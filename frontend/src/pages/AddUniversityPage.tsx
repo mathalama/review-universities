@@ -33,11 +33,13 @@ const AddUniversityPage: React.FC = () => {
   const [website, setWebsite] = useState('');
   const [logoUrl, setLogoUrl] = useState(''); // Optional, backend supports it
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     try {
       const response = await api.post<University>('/universities', {
@@ -52,6 +54,8 @@ const AddUniversityPage: React.FC = () => {
     } catch (err) {
       console.error(err);
       setError('Failed to create university. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -137,9 +141,12 @@ const AddUniversityPage: React.FC = () => {
         <div>
           <button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            disabled={isLoading}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+              isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
           >
-            Create University
+            {isLoading ? 'Creating...' : 'Create University'}
           </button>
         </div>
       </form>

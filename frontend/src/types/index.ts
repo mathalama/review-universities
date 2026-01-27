@@ -28,7 +28,14 @@ export interface Review {
   universityId?: number;
   universityName?: string;
   userId?: number;
-  rating: number;
+  rating: number; // Overall
+  facilities?: number;
+  opportunities?: number;
+  location?: number;
+  internet?: number;
+  food?: number;
+  difficulty?: number;
+  status?: string; // Current Student, Alumnus
   text: string;
   year?: number; // kept for legacy if needed, but we use createdAt now
   tags: string[];

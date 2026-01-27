@@ -12,6 +12,13 @@ public class ReviewResponse {
     private Long id;
     private String text;
     private int rating;
+    private int facilities;
+    private int opportunities;
+    private int location;
+    private int internet;
+    private int food;
+    private int difficulty;
+    private String status;
     private List<String> tags;
     private String userName; // Анонимно или имя
     private Long userId;

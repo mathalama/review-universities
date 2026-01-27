@@ -25,7 +25,16 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String text;
 
-    private int rating; // 1-5
+    private int rating; // 1-5 (Overall)
+
+    private int facilities; // 1-5
+    private int opportunities; // 1-5
+    private int location; // 1-5
+    private int internet; // 1-5
+    private int food; // 1-5
+    private int difficulty; // 1-5
+    
+    private String status; // Current Student / Alumnus
 
     // Тэги храним простой строкой через запятую для MVP, или можно @ElementCollection
     @Column(columnDefinition = "TEXT")
