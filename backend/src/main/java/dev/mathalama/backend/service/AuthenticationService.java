@@ -10,6 +10,8 @@ import dev.mathalama.backend.web.dto.AuthenticationRequest;
 import dev.mathalama.backend.web.dto.AuthenticationResponse;
 import dev.mathalama.backend.web.dto.RegisterRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +21,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthenticationService {
 
     private final UserRepository repository;
@@ -27,6 +30,9 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+
+    @Value("${application.base-url}")
+    private String baseUrl;
 
     public AuthenticationResponse register(RegisterRequest request) {
         // Проверяем, нет ли уже такого пользователя в основной БД
@@ -59,12 +65,12 @@ public class AuthenticationService {
         userRedisRepository.save(unverifiedUser);
 
         // Отправка письма
-        String verificationLink = "http://localhost:8080/api/v1/auth/verify?token=" + token;
+        String verificationLink = baseUrl + "/api/v1/auth/verify?token=" + token;
         try {
             emailService.sendVerificationEmail(request.getEmail(), verificationLink);
         } catch (Exception e) {
             // Log error but allow registration to proceed for dev/test purposes if email fails
-            System.err.println("Failed to send email: " + e.getMessage());
+            log.error("Failed to send email to {}: {}", request.getEmail(), e.getMessage());
         }
 
         return AuthenticationResponse.builder()
