@@ -36,7 +36,7 @@ public class AuthenticationController {
     public ResponseEntity<Void> verifyEmail(@RequestParam("token") String token) {
         service.verifyToken(token);
         return ResponseEntity.status(org.springframework.http.HttpStatus.FOUND)
-                .location(java.net.URI.create("http://localhost:5173/login?verified=true"))
+                .location(java.net.URI.create("https://university.mathalama.dev/login?verified=true"))
                 .build();
     }
 

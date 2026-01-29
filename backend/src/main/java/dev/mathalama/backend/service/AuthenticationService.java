@@ -31,8 +31,7 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
 
-    @Value("${application.base-url}")
-    private String baseUrl;
+    private String baseUrl = "https://unireview-ui7q.onrender.com";
 
     public AuthenticationResponse register(RegisterRequest request) {
         // Проверяем, нет ли уже такого пользователя в основной БД
