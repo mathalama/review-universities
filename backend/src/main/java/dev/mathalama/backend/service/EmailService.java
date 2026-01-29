@@ -33,7 +33,7 @@ public class EmailService {
             """.formatted(verificationLink, verificationLink);
 
         SendEmailRequest params = SendEmailRequest.builder()
-                .from("University Reviews <onboarding@resend.dev>")
+                .from("University Reviews <support@mathalama.dev>")
                 .to(to)
                 .subject("Подтверждение регистрации")
                 .html(htmlContent)
