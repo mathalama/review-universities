@@ -1,7 +1,7 @@
 package dev.mathalama.backend.service;
 
 import com.resend.Resend;
-import com.resend.services.emails.model.SendEmailRequest;
+import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -32,7 +32,7 @@ public class EmailService {
             </div>
             """.formatted(verificationLink, verificationLink);
 
-        SendEmailRequest params = SendEmailRequest.builder()
+        CreateEmailOptions params = CreateEmailOptions.builder()
                 .from("University Reviews <support@mathalama.dev>")
                 .to(to)
                 .subject("Подтверждение регистрации")
