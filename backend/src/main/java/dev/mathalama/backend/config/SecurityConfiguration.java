@@ -42,7 +42,8 @@ public class SecurityConfiguration {
                                         "/swagger-ui/**",
                                         "/swagger-ui.html",
                                         "/error",
-                                        "/api/v1/auth/verify"
+                                        "/api/v1/auth/verify",
+                                        "/api/v1/auth/resend-verification"
                                 )
                                 .permitAll()
                                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/universities/**", "/api/v1/reviews/**")

@@ -8,4 +8,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://unireview-ui7q.onrender.com',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 })
