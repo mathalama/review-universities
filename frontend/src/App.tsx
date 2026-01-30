@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 import { useAuth } from './context/AuthContext';
 import { lazy, Suspense } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load pages
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -49,9 +50,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
