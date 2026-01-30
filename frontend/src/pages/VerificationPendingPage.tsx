@@ -5,7 +5,7 @@ import { Mail, ArrowRight, RefreshCw } from 'lucide-react';
 
 const VerificationPendingPage: React.FC = () => {
   const location = useLocation();
-  const email = location.state?.email || '';
+  const [email, setEmail] = useState(location.state?.email || '');
   
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -35,10 +35,24 @@ const VerificationPendingPage: React.FC = () => {
           </div>
           
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
-          <p className="text-gray-600 mb-6">
-            We've sent a verification link to:<br/>
-            <span className="font-semibold text-gray-900">{email || 'your email address'}</span>
-          </p>
+          
+          {email ? (
+             <p className="text-gray-600 mb-6">
+               We've sent a verification link to:<br/>
+               <span className="font-semibold text-gray-900">{email}</span>
+             </p>
+          ) : (
+             <div className="mb-6">
+                 <p className="text-gray-600 mb-3">Please enter your email to resend the link:</p>
+                 <input
+                   type="email"
+                   value={email}
+                   onChange={(e) => setEmail(e.target.value)}
+                   placeholder="Enter your email"
+                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                 />
+             </div>
+          )}
 
           <div className="bg-gray-50 rounded-md p-4 mb-6 text-sm text-gray-500 text-left">
             <p className="mb-2"><strong>Next steps:</strong></p>

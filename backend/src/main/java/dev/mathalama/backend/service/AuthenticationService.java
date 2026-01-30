@@ -17,6 +17,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -102,6 +103,7 @@ public class AuthenticationService {
                 .build();
     }
 
+    @Transactional
     public String verifyToken(String token) {
         // Ищем пользователя в Redis
         UserRedis unverifiedUser = userRedisRepository.findById(token)
@@ -125,6 +127,7 @@ public class AuthenticationService {
         return "Email verified successfully! You can now login.";
     }
 
+    @Transactional
     public void resendVerification(String email) {
         var oldUserRedis = userRedisRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found or already verified"));
