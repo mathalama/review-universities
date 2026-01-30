@@ -28,7 +28,6 @@ public class EmailService {
                     По истечении этого времени ваша заявка на регистрацию будет автоматически удалена из системы в целях безопасности, и вам придется зарегистрироваться повторно.
                 </p>
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 12px; color: #999;">Если кнопка не работает, скопируйте ссылку: %s</p>
             </div>
             """.formatted(verificationLink, verificationLink);
 
