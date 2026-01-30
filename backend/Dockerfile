@@ -6,6 +6,9 @@ WORKDIR /app
 COPY build.gradle settings.gradle gradlew gradlew.bat ./
 COPY gradle gradle
 
+# Grant execute permission to gradlew
+RUN chmod +x gradlew
+
 # Download dependencies - this layer will be cached unless build.gradle changes
 RUN ./gradlew build -x test --no-daemon || true
 
