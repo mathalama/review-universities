@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import type { AuthResponse } from '../types';
-import { CheckCircle, Mail } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
+  const navigate = useNavigate();
   const [firstname, setFirstname] = useState('');
   const [lastname, setLastname] = useState('');
   const [email, setEmail] = useState('');
@@ -12,10 +12,6 @@ const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [canResend, setCanResend] = useState(false);
-  const [isResending, setIsResending] = useState(false);
-  const [resendMessage, setResendMessage] = useState('');
 
   const ALLOWED_DOMAINS = [
     "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", 
@@ -25,26 +21,9 @@ const RegisterPage: React.FC = () => {
     "ukr.net", "i.ua"
   ];
 
-  const handleResend = async () => {
-    setIsResending(true);
-    setResendMessage('');
-    try {
-      await api.post(`/auth/resend-verification?email=${email}`);
-      setResendMessage('Email resent successfully! Check your inbox.');
-      setCanResend(false); // Hide button after success
-      setError(''); // Clear the error
-    } catch (err) {
-      setResendMessage('Failed to resend email. Please try again.');
-    } finally {
-      setIsResending(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setCanResend(false);
-    setResendMessage('');
 
     // Client-side Domain Validation
     const domain = email.split('@')[1]?.toLowerCase();
@@ -60,39 +39,39 @@ const RegisterPage: React.FC = () => {
 
     setIsLoading(true);
     
-    // Optimistic UI: We assume success for better UX, but handle errors if they occur later.
-    // The backend is now async for email sending, so the real response should be fast anyway.
     try {
-      // Minimum delay for UX perception of "work"
-      const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Fire the request but don't block the UI transition on it if it's slow
+      // Optimistic UI delay
+      const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
       const request = api.post<AuthResponse>('/auth/register', { firstname, lastname, email, password });
-
-      // Wait for the minimum delay
-      await minDelay;
-
-      // If the request is still pending, we could show success optimistically?
-      // But safer is to wait for the request, as backend is now optimized to be fast (ms).
-      // The delay is purely cosmetic now.
-      await request;
       
-      setIsSuccess(true);
+      await Promise.all([minDelay, request]);
+      
+      // Redirect to verification pending page on success
+      navigate('/verification-pending', { state: { email } });
+      
     } catch (err: any) {
         if (err.response && err.response.data) {
             const data = err.response.data;
+            
+            // Handle HTML errors (e.g. 404/500 Proxy errors)
+            if (typeof data === 'string' && data.trim().startsWith('<')) {
+                console.error("Received HTML error response:", data);
+                setError('Unable to reach the server. Please check your connection or try again later.');
+                return;
+            }
+
             if (typeof data === 'string') {
                 setError(data);
                 if (data.includes("verification email has already been sent")) {
-                    setCanResend(true);
+                    // Redirect to verification page if already sent
+                    navigate('/verification-pending', { state: { email } });
                 }
             } else if (data.error) {
                 setError(data.error);
                 if (data.error.includes("verification email has already been sent")) {
-                    setCanResend(true);
+                     navigate('/verification-pending', { state: { email } });
                 }
             } else if (typeof data === 'object') {
-                // Handle validation errors from MethodArgumentNotValidException
                 const firstError = Object.values(data)[0] as string;
                 setError(firstError);
             } else {
@@ -106,44 +85,6 @@ const RegisterPage: React.FC = () => {
     }
   };
 
-  if (isSuccess) {
-    return (
-      <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Регистрация прошла успешно!</h2>
-            <p className="text-gray-600 mb-6">
-              Мы отправили ссылку для подтверждения на ваш email: <strong>{email}</strong>
-            </p>
-            
-            <div className="flex items-center justify-center text-sm text-gray-500 mb-6">
-                <Mail className="h-4 w-4 mr-2" />
-                Пожалуйста, проверьте папку "Входящие" (и "Спам").
-            </div>
-
-            <div className="space-y-3">
-                 <Link
-                  to="/login"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Перейти к входу
-                </Link>
-                 <button
-                  onClick={() => setIsSuccess(false)}
-                   className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Back
-                </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -156,19 +97,6 @@ const RegisterPage: React.FC = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
              {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-             {canResend && (
-                 <div className="text-center">
-                     <button
-                        type="button"
-                        onClick={handleResend}
-                        disabled={isResending}
-                        className="text-indigo-600 hover:text-indigo-500 text-sm font-medium focus:outline-none"
-                     >
-                        {isResending ? 'Sending...' : 'Resend Verification Email'}
-                     </button>
-                 </div>
-             )}
-             {resendMessage && <div className={`text-sm text-center ${resendMessage.includes('Success') ? 'text-green-600' : 'text-red-600'}`}>{resendMessage}</div>}
             
             <div className="grid grid-cols-2 gap-4">
               <div>

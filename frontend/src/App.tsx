@@ -13,6 +13,7 @@ const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AddUniversityPage = lazy(() => import('./pages/AddUniversityPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const VerificationPendingPage = lazy(() => import('./pages/VerificationPendingPage'));
 
 function AppContent() {
   const { isLoading } = useAuth();
@@ -39,6 +40,7 @@ function AppContent() {
             <Route path="/add-university" element={<AddUniversityPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verification-pending" element={<VerificationPendingPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
