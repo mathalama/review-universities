@@ -1,9 +1,11 @@
 package dev.mathalama.backend.service;
 
 import dev.mathalama.backend.config.JwtService;
+import dev.mathalama.backend.domain.PasswordResetTokenRedis;
 import dev.mathalama.backend.domain.Role;
 import dev.mathalama.backend.domain.User;
 import dev.mathalama.backend.domain.UserRedis;
+import dev.mathalama.backend.repository.PasswordResetTokenRepository;
 import dev.mathalama.backend.repository.UserRepository;
 import dev.mathalama.backend.repository.UserRedisRepository;
 import dev.mathalama.backend.validation.EmailDomainValidator;
@@ -12,7 +14,6 @@ import dev.mathalama.backend.web.dto.AuthenticationResponse;
 import dev.mathalama.backend.web.dto.RegisterRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,6 +30,7 @@ public class AuthenticationService {
 
     private final UserRepository repository;
     private final UserRedisRepository userRedisRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -43,24 +45,24 @@ public class AuthenticationService {
             throw new RuntimeException("Email domain not allowed. Please use a common provider (Gmail, Yandex, Mail.ru, Outlook, etc.)");
         }
 
-        // Проверяем, нет ли уже такого пользователя в основной БД
+        // Check if user exists in main DB
         if (repository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("User already exists");
         }
         
-        // Проверяем, нет ли уже такого пользователя в Redis (еще не подтвердил почту)
+        // Check if user exists in Redis (unverified)
         if (userRedisRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("A verification email has already been sent to this address. Please check your inbox.");
         }
 
-        // Генерация токена подтверждения
+        // Generate verification token
         String token = UUID.randomUUID().toString();
         
-        // Check if this is the first user (ignoring unverified in Redis, checking main DB)
+        // Check if this is the first user
         boolean isFirstUser = repository.count() == 0;
         Role role = isFirstUser ? Role.ADMIN : Role.USER;
 
-        // Сохраняем временного пользователя в Redis
+        // Save temporary user to Redis
         var unverifiedUser = UserRedis.builder()
                 .token(token)
                 .email(request.getEmail())
@@ -72,20 +74,19 @@ public class AuthenticationService {
         
         userRedisRepository.save(unverifiedUser);
 
-        // Отправка письма
+        // Send email
         String verificationLink = baseUrl + "/api/v1/auth/verify?token=" + token;
         
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
                 emailService.sendVerificationEmail(request.getEmail(), verificationLink);
             } catch (Exception e) {
-                // Log error but allow registration to proceed for dev/test purposes if email fails
                 log.error("Failed to send email to {}: {}", request.getEmail(), e.getMessage());
             }
         });
 
         return AuthenticationResponse.builder()
-                .token("") // JWT не возвращаем
+                .token("")
                 .build();
     }
 
@@ -107,23 +108,23 @@ public class AuthenticationService {
 
     @Transactional
     public String verifyToken(String token) {
-        // Ищем пользователя в Redis
+        // Find user in Redis
         UserRedis unverifiedUser = userRedisRepository.findById(token)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
 
-        // Создаем и сохраняем пользователя в основную БД
+        // Create and save user to main DB
         var user = User.builder()
                 .email(unverifiedUser.getEmail())
                 .firstname(unverifiedUser.getFirstname())
                 .lastname(unverifiedUser.getLastname())
-                .password(unverifiedUser.getPassword())
+                .password(unverifiedUser.getPassword()) // Password is already encoded
                 .role(unverifiedUser.getRole())
                 .enabled(true)
                 .build();
         
         repository.save(user);
         
-        // Удаляем из Redis
+        // Remove from Redis
         userRedisRepository.delete(unverifiedUser);
 
         return "Email verified successfully! You can now login.";
@@ -160,5 +161,42 @@ public class AuthenticationService {
             log.error("Failed to resend email to {}: {}", email, e.getMessage());
             throw new RuntimeException("Failed to send email");
         }
+    }
+
+    public void forgotPassword(String email) {
+        var user = repository.findByEmail(email);
+        if (user.isEmpty()) {
+            return; 
+        }
+
+        // Clean up any existing tokens
+        passwordResetTokenRepository.findByEmail(email).ifPresent(passwordResetTokenRepository::delete);
+
+        String token = UUID.randomUUID().toString();
+        var resetToken = PasswordResetTokenRedis.builder()
+                .token(token)
+                .email(email)
+                .build();
+        
+        passwordResetTokenRepository.save(resetToken);
+
+        String resetLink = "https://university.mathalama.dev/reset-password?token=" + token;
+        java.util.concurrent.CompletableFuture.runAsync(() -> 
+            emailService.sendPasswordResetEmail(email, resetLink)
+        );
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        var resetToken = passwordResetTokenRepository.findById(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired password reset token"));
+
+        var user = repository.findByEmail(resetToken.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        repository.save(user);
+
+        passwordResetTokenRepository.delete(resetToken);
     }
 }

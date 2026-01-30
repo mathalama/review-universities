@@ -6,6 +6,8 @@ import dev.mathalama.backend.web.dto.AuthenticationRequest;
 import dev.mathalama.backend.web.dto.AuthenticationResponse;
 import dev.mathalama.backend.web.dto.RegisterRequest;
 import dev.mathalama.backend.web.dto.UserResponse;
+import dev.mathalama.backend.web.dto.ForgotPasswordRequest;
+import dev.mathalama.backend.web.dto.ResetPasswordRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -44,6 +46,19 @@ public class AuthenticationController {
     public ResponseEntity<String> resendVerification(@RequestParam("email") String email) {
         service.resendVerification(email);
         return ResponseEntity.ok("Verification email resent successfully");
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody @jakarta.validation.Valid ForgotPasswordRequest request) {
+        service.forgotPassword(request.getEmail());
+        // Always return OK to prevent email enumeration
+        return ResponseEntity.ok("If an account exists with this email, a reset link has been sent.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody @jakarta.validation.Valid ResetPasswordRequest request) {
+        service.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok("Password reset successfully. You can now login.");
     }
 
     @GetMapping("/me")
