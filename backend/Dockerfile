@@ -10,10 +10,13 @@ COPY gradle gradle
 RUN chmod +x gradlew
 
 # Download dependencies - this layer will be cached unless build.gradle changes
-RUN ./gradlew build -x test --no-daemon || true
+RUN ./gradlew dependencies --no-daemon || true
 
 # Copy the rest of the source code
 COPY . .
+
+# Grant execute permission again because COPY overwrites it
+RUN chmod +x gradlew
 
 # Build the application
 RUN ./gradlew clean build -x test --no-daemon
