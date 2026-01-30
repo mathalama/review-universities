@@ -40,6 +40,12 @@ public class AuthenticationController {
                 .build();
     }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@RequestParam("email") String email) {
+        service.resendVerification(email);
+        return ResponseEntity.ok("Verification email resent successfully");
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         User user = (User) authentication.getPrincipal();

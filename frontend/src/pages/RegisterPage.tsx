@@ -13,10 +13,45 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [canResend, setCanResend] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+
+  const ALLOWED_DOMAINS = [
+    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", 
+    "icloud.com", "protonmail.com", "proton.me",
+    "mail.ru", "yandex.ru", "yandex.com", "ya.ru", 
+    "rambler.ru", "bk.ru", "inbox.ru", "list.ru", "internet.ru",
+    "ukr.net", "i.ua"
+  ];
+
+  const handleResend = async () => {
+    setIsResending(true);
+    setResendMessage('');
+    try {
+      await api.post(`/auth/resend-verification?email=${email}`);
+      setResendMessage('Email resent successfully! Check your inbox.');
+      setCanResend(false); // Hide button after success
+      setError(''); // Clear the error
+    } catch (err) {
+      setResendMessage('Failed to resend email. Please try again.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setCanResend(false);
+    setResendMessage('');
+
+    // Client-side Domain Validation
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
+        setError('Please use a common email provider (Gmail, Yandex, Mail.ru, etc.)');
+        return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -24,16 +59,38 @@ const RegisterPage: React.FC = () => {
     }
 
     setIsLoading(true);
+    
+    // Optimistic UI: We assume success for better UX, but handle errors if they occur later.
+    // The backend is now async for email sending, so the real response should be fast anyway.
     try {
-      await api.post<AuthResponse>('/auth/register', { firstname, lastname, email, password });
+      // Minimum delay for UX perception of "work"
+      const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Fire the request but don't block the UI transition on it if it's slow
+      const request = api.post<AuthResponse>('/auth/register', { firstname, lastname, email, password });
+
+      // Wait for the minimum delay
+      await minDelay;
+
+      // If the request is still pending, we could show success optimistically?
+      // But safer is to wait for the request, as backend is now optimized to be fast (ms).
+      // The delay is purely cosmetic now.
+      await request;
+      
       setIsSuccess(true);
     } catch (err: any) {
         if (err.response && err.response.data) {
             const data = err.response.data;
             if (typeof data === 'string') {
                 setError(data);
+                if (data.includes("verification email has already been sent")) {
+                    setCanResend(true);
+                }
             } else if (data.error) {
                 setError(data.error);
+                if (data.error.includes("verification email has already been sent")) {
+                    setCanResend(true);
+                }
             } else if (typeof data === 'object') {
                 // Handle validation errors from MethodArgumentNotValidException
                 const firstError = Object.values(data)[0] as string;
@@ -99,6 +156,19 @@ const RegisterPage: React.FC = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
              {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+             {canResend && (
+                 <div className="text-center">
+                     <button
+                        type="button"
+                        onClick={handleResend}
+                        disabled={isResending}
+                        className="text-indigo-600 hover:text-indigo-500 text-sm font-medium focus:outline-none"
+                     >
+                        {isResending ? 'Sending...' : 'Resend Verification Email'}
+                     </button>
+                 </div>
+             )}
+             {resendMessage && <div className={`text-sm text-center ${resendMessage.includes('Success') ? 'text-green-600' : 'text-red-600'}`}>{resendMessage}</div>}
             
             <div className="grid grid-cols-2 gap-4">
               <div>

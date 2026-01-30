@@ -6,6 +6,7 @@ import dev.mathalama.backend.domain.User;
 import dev.mathalama.backend.domain.UserRedis;
 import dev.mathalama.backend.repository.UserRepository;
 import dev.mathalama.backend.repository.UserRedisRepository;
+import dev.mathalama.backend.validation.EmailDomainValidator;
 import dev.mathalama.backend.web.dto.AuthenticationRequest;
 import dev.mathalama.backend.web.dto.AuthenticationResponse;
 import dev.mathalama.backend.web.dto.RegisterRequest;
@@ -30,10 +31,16 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final EmailDomainValidator emailValidator;
 
     private String baseUrl = "https://unireview-ui7q.onrender.com";
 
     public AuthenticationResponse register(RegisterRequest request) {
+        // Validate Email Domain
+        if (!emailValidator.isValid(request.getEmail())) {
+            throw new RuntimeException("Email domain not allowed. Please use a common provider (Gmail, Yandex, Mail.ru, Outlook, etc.)");
+        }
+
         // Проверяем, нет ли уже такого пользователя в основной БД
         if (repository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("User already exists");
@@ -65,12 +72,15 @@ public class AuthenticationService {
 
         // Отправка письма
         String verificationLink = baseUrl + "/api/v1/auth/verify?token=" + token;
-        try {
-            emailService.sendVerificationEmail(request.getEmail(), verificationLink);
-        } catch (Exception e) {
-            // Log error but allow registration to proceed for dev/test purposes if email fails
-            log.error("Failed to send email to {}: {}", request.getEmail(), e.getMessage());
-        }
+        
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                emailService.sendVerificationEmail(request.getEmail(), verificationLink);
+            } catch (Exception e) {
+                // Log error but allow registration to proceed for dev/test purposes if email fails
+                log.error("Failed to send email to {}: {}", request.getEmail(), e.getMessage());
+            }
+        });
 
         return AuthenticationResponse.builder()
                 .token("") // JWT не возвращаем
@@ -113,5 +123,37 @@ public class AuthenticationService {
         userRedisRepository.delete(unverifiedUser);
 
         return "Email verified successfully! You can now login.";
+    }
+
+    public void resendVerification(String email) {
+        var oldUserRedis = userRedisRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found or already verified"));
+
+        // Delete old token
+        userRedisRepository.delete(oldUserRedis);
+
+        // Generate new token
+        String newToken = UUID.randomUUID().toString();
+
+        // Create new record
+        var newUserRedis = UserRedis.builder()
+                .token(newToken)
+                .email(oldUserRedis.getEmail())
+                .firstname(oldUserRedis.getFirstname())
+                .lastname(oldUserRedis.getLastname())
+                .password(oldUserRedis.getPassword())
+                .role(oldUserRedis.getRole())
+                .build();
+
+        userRedisRepository.save(newUserRedis);
+
+        // Send email
+        String verificationLink = baseUrl + "/api/v1/auth/verify?token=" + newToken;
+        try {
+            emailService.sendVerificationEmail(email, verificationLink);
+        } catch (Exception e) {
+            log.error("Failed to resend email to {}: {}", email, e.getMessage());
+            throw new RuntimeException("Failed to send email");
+        }
     }
 }

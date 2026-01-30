@@ -1,8 +1,19 @@
 # Build Stage
 FROM gradle:8.5-jdk17 AS builder
 WORKDIR /app
+
+# Copy only the files needed to download dependencies
+COPY build.gradle settings.gradle gradlew gradlew.bat ./
+COPY gradle gradle
+
+# Download dependencies - this layer will be cached unless build.gradle changes
+RUN ./gradlew build -x test --no-daemon || true
+
+# Copy the rest of the source code
 COPY . .
-RUN gradle clean build -x test
+
+# Build the application
+RUN ./gradlew clean build -x test --no-daemon
 
 # Run Stage
 FROM eclipse-temurin:17-jre-alpine
