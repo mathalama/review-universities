@@ -13,7 +13,12 @@ const HomePage: React.FC = () => {
     const fetchUniversities = async () => {
       try {
         const response = await api.get<University[]>('/universities');
-        setUniversities(response.data);
+        if (Array.isArray(response.data)) {
+            setUniversities(response.data);
+        } else {
+            console.error('API Error: Expected array of universities, got:', response.data);
+            setUniversities([]);
+        }
       } catch (error) {
         console.error('Error fetching universities:', error);
         setUniversities([]);
@@ -25,7 +30,9 @@ const HomePage: React.FC = () => {
     fetchUniversities();
   }, []);
 
-  const filteredUniversities = universities.filter(uni =>
+  const safeUniversities = Array.isArray(universities) ? universities : [];
+
+  const filteredUniversities = safeUniversities.filter(uni =>
     uni.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     uni.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (uni.tags && uni.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))

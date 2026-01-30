@@ -55,16 +55,20 @@ const AdminPage: React.FC = () => {
     try {
       if (activeTab === 'users') {
         const response = await api.get<User[]>('/users');
-        setUsers(response.data);
+        setUsers(Array.isArray(response.data) ? response.data : []);
       } else if (activeTab === 'universities') {
         const response = await api.get<University[]>('/universities');
-        setUniversities(response.data);
+        setUniversities(Array.isArray(response.data) ? response.data : []);
       } else if (activeTab === 'reviews') {
         const response = await api.get<Review[]>('/reviews');
-        setReviews(response.data);
+        setReviews(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
+      // Reset state on error to avoid stale non-array data
+      if (activeTab === 'users') setUsers([]);
+      if (activeTab === 'universities') setUniversities([]);
+      if (activeTab === 'reviews') setReviews([]);
     } finally {
       setLoading(false);
     }
