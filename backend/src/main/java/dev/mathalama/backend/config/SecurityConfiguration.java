@@ -45,7 +45,8 @@ public class SecurityConfiguration {
                                         "/api/v1/auth/verify",
                                         "/api/v1/auth/resend-verification",
                                         "/api/v1/auth/forgot-password",
-                                        "/api/v1/auth/reset-password"
+                                        "/api/v1/auth/reset-password",
+                                        "/actuator/**"
                                 )
                                 .permitAll()
                                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/universities/**", "/api/v1/reviews/**")

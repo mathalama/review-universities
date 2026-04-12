@@ -40,53 +40,32 @@ public class AuthenticationService {
     private String baseUrl = "https://unireview-ui7q.onrender.com";
 
     public AuthenticationResponse register(RegisterRequest request) {
-        // Validate Email Domain
-        if (!emailValidator.isValid(request.getEmail())) {
-            throw new RuntimeException("Email domain not allowed. Please use a common provider (Gmail, Yandex, Mail.ru, Outlook, etc.)");
-        }
-
         // Check if user exists in main DB
         if (repository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("User already exists");
         }
-        
-        // Check if user exists in Redis (unverified)
-        if (userRedisRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("A verification email has already been sent to this address. Please check your inbox.");
-        }
 
-        // Generate verification token
-        String token = UUID.randomUUID().toString();
-        
         // Check if this is the first user
         boolean isFirstUser = repository.count() == 0;
         Role role = isFirstUser ? Role.ADMIN : Role.USER;
 
-        // Save temporary user to Redis
-        var unverifiedUser = UserRedis.builder()
-                .token(token)
-                .email(request.getEmail())
+        // Create and save user directly to main DB
+        var user = User.builder()
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
+                .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(role)
+                .enabled(true)
                 .build();
         
-        userRedisRepository.save(unverifiedUser);
+        repository.save(user);
 
-        // Send email
-        String verificationLink = baseUrl + "/api/v1/auth/verify?token=" + token;
-        
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
-            try {
-                emailService.sendVerificationEmail(request.getEmail(), verificationLink);
-            } catch (Exception e) {
-                log.error("Failed to send email to {}: {}", request.getEmail(), e.getMessage());
-            }
-        });
+        // Generate and return token immediately
+        var jwtToken = jwtService.generateToken(user);
 
         return AuthenticationResponse.builder()
-                .token("")
+                .token(jwtToken)
                 .build();
     }
 

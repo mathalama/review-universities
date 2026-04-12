@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import type { AuthResponse } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [firstname, setFirstname] = useState('');
   const [lastname, setLastname] = useState('');
   const [email, setEmail] = useState('');
@@ -13,24 +15,9 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const ALLOWED_DOMAINS = [
-    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", 
-    "icloud.com", "protonmail.com", "proton.me",
-    "mail.ru", "yandex.ru", "yandex.com", "ya.ru", 
-    "rambler.ru", "bk.ru", "inbox.ru", "list.ru", "internet.ru",
-    "ukr.net", "i.ua"
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // Client-side Domain Validation
-    const domain = email.split('@')[1]?.toLowerCase();
-    if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
-        setError('Please use a common email provider (Gmail, Yandex, Mail.ru, etc.)');
-        return;
-    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -41,41 +28,37 @@ const RegisterPage: React.FC = () => {
     
     try {
       // Optimistic UI delay
-      const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+      const minDelay = new Promise(resolve => setTimeout(resolve, 800));
       const request = api.post<AuthResponse>('/auth/register', { firstname, lastname, email, password });
       
-      await Promise.all([minDelay, request]);
+      const [_, response] = await Promise.all([minDelay, request]);
       
-      // Redirect to verification pending page on success
-      navigate('/verification-pending', { state: { email } });
+      // Log in immediately with the returned token
+      if (response.data.token) {
+        await login(response.data.token);
+        navigate('/');
+      } else {
+        setError('Registration succeeded but no token was returned.');
+      }
       
     } catch (err: any) {
         if (err.response && err.response.data) {
             const data = err.response.data;
             
-            // Handle HTML errors (e.g. 404/500 Proxy errors)
             if (typeof data === 'string' && data.trim().startsWith('<')) {
-                console.error("Received HTML error response:", data);
-                setError('Unable to reach the server. Please check your connection or try again later.');
+                setError('Unable to reach the server. Please check your connection.');
                 return;
             }
 
             if (typeof data === 'string') {
                 setError(data);
-                if (data.includes("verification email has already been sent")) {
-                    // Redirect to verification page if already sent
-                    navigate('/verification-pending', { state: { email } });
-                }
             } else if (data.error) {
                 setError(data.error);
-                if (data.error.includes("verification email has already been sent")) {
-                     navigate('/verification-pending', { state: { email } });
-                }
             } else if (typeof data === 'object') {
                 const firstError = Object.values(data)[0] as string;
                 setError(firstError);
             } else {
-                setError('Registration failed. Please check your data.');
+                setError('Registration failed.');
             }
         } else {
             setError('Could not connect to the server.');
