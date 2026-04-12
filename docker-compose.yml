@@ -6,10 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - target: 5432
-        published: 5432
-        protocol: tcp
-        mode: ingress
+      - 5432:5432
     deploy:
       replicas: 1
       restart_policy:
@@ -18,10 +15,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - target: 6379
-        published: 6379
-        protocol: tcp
-        mode: ingress
+      - 6379:6379
     deploy:
       replicas: 1
 
@@ -44,10 +38,7 @@ services:
       - db
       - redis
     ports:
-      - target: 8080
-        published: 8080
-        protocol: tcp
-        mode: ingress
+      - 8080:8080
     deploy:
       replicas: 2
       restart_policy:
@@ -59,10 +50,7 @@ services:
       dockerfile: Dockerfile
     image: review-frontend:latest
     ports:
-      - target: 80
-        published: 80
-        protocol: tcp
-        mode: ingress
+      - 80:80
     depends_on:
       - backend
     deploy:
@@ -77,20 +65,14 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
     ports:
-      - target: 9090
-        published: 9090
-        protocol: tcp
-        mode: ingress
+      - 9090:9090
     deploy:
       replicas: 1
 
   grafana:
     image: grafana/grafana:latest
     ports:
-      - target: 3000
-        published: 3001
-        protocol: tcp
-        mode: ingress
+      - 3001:3000
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning
     environment:
@@ -103,9 +85,6 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     ports:
-      - target: 9100
-        published: 9100
-        protocol: tcp
-        mode: ingress
+      - 9100:9100
     deploy:
       mode: global
